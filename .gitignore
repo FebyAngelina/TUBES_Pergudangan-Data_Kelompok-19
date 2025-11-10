@@ -1,0 +1,46 @@
+# SQL Server Database Files
+*.mdf
+*.ldf
+*.bak
+*.trn
+
+# SSIS Files
+*.dtproj.user
+*.suo
+**/bin/
+**/obj/
+*.cache
+
+# Power BI Files
+*.pbix.tmp
+*.pbit
+
+# Excel Temp Files
+~$*.xlsx
+~$*.xls
+
+# Credentials & Config
+**/config/*.json
+**/secrets/
+**/*connection*.config
+**/*credentials*.txt
+
+# Logs
+*.log
+*.txt
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.backup
+*.old
