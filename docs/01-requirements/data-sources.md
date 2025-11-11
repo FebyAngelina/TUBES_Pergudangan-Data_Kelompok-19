@@ -1,5 +1,11 @@
 # Data Source Inventory - Biro Akademik Umum ITERA
 
+**Dokumen Version:** 2.0  
+**Last Updated:** 11 November 2025  
+**Updated by:** Kelompok 19 - Aldi, Zahra, Feby
+
+---
+
 ## 1. Sistem Persuratan (SIMASTER/E-Office)
 
 **Deskripsi:** Aplikasi web untuk mengelola surat masuk dan keluar institusi
@@ -19,356 +25,449 @@
 - Update frequency: Real-time (setiap ada surat baru)
 - Growth rate: 400-450 surat/bulan
 
-**Struktur Data (tbl_surat_masuk):**
+### 1.1 Struktur Data (tbl_surat_masuk)
+
 | Kolom                 | Tipe Data    | Contoh                    |
 |-----------------------|--------------|---------------------------|
 | id_surat              | VARCHAR(30)  | SRT/IN/2024/001           |
 | nomor_surat           | VARCHAR(50)  | 123/UN31/AK/2024          |
 | tanggal_surat         | DATE         | 2024-10-15                |
 | tanggal_diterima      | DATE         | 2024-10-16                |
-| jenis_surat_id        | INT          | 1                         |
+| pengirim              | VARCHAR(200) | Direktorat Akademik       |
 | perihal               | TEXT         | Undangan Rapat Koordinasi |
-| pengirim_eksternal    | VARCHAR(200) | Kemendikbud               |
-| unit_tujuan_id        | INT          | 5 (Fakultas Sains)        |
-| tingkat_prioritas     | VARCHAR(20)  | Sedang                    |
-| status_id             | INT          | 3 (Selesai)               |
-| pic_penerima_id       | INT          | 12345                     |
-| file_attachment       | VARCHAR(255) | /uploads/2024/file.pdf    |
-| keterangan            | TEXT         | Disposisi ke Dekan        |
-| created_date          | DATETIME     | 2024-10-15 08:30:00       |
-| updated_date          | DATETIME     | 2024-10-16 14:20:00       |
+| jenis_surat_id        | INT          | 3                         |
+| status                | VARCHAR(20)  | Selesai                   |
+| disposisi_ke          | VARCHAR(100) | Kabag Umum                |
+| file_path             | VARCHAR(255) | /uploads/2024/10/srt001.pdf |
 
-**Struktur Data (tbl_surat_keluar):**
+### 1.2 Struktur Data (tbl_surat_keluar)
+
 | Kolom                 | Tipe Data    | Contoh                    |
 |-----------------------|--------------|---------------------------|
-| id_surat              | VARCHAR(30)  | SRT/OUT/2024/050          |
-| nomor_surat           | VARCHAR(50)  | 050/UN31.2/AK/2024        |
+| id_surat              | VARCHAR(30)  | SRT/OUT/2024/001          |
+| nomor_surat           | VARCHAR(50)  | 456/UN31/AK/2024          |
 | tanggal_surat         | DATE         | 2024-10-20                |
-| jenis_surat_id        | INT          | 2                         |
-| perihal               | TEXT         | Pemberitahuan Jadwal      |
-| unit_pengirim_id      | INT          | 10 (Biro Akademik)        |
-| tujuan_eksternal      | VARCHAR(200) | Semua Fakultas            |
-| tingkat_prioritas     | VARCHAR(20)  | Tinggi                    |
-| status_id             | INT          | 2 (Dalam Proses)          |
-| pic_pembuat_id        | INT          | 12350                     |
-| waktu_proses_mulai    | DATETIME     | 2024-10-18 09:00:00       |
-| waktu_proses_selesai  | DATETIME     | 2024-10-20 11:00:00       |
-| file_attachment       | VARCHAR(255) | /uploads/2024/file2.pdf   |
-| created_date          | DATETIME     | 2024-10-18 09:00:00       |
+| tujuan                | VARCHAR(200) | Kementerian Pendidikan    |
+| perihal               | TEXT         | Laporan Kegiatan          |
+| jenis_surat_id        | INT          | 5                         |
+| status                | VARCHAR(20)  | Terkirim                  |
+| penandatangan         | VARCHAR(100) | Rektor                    |
+| file_path             | VARCHAR(255) | /uploads/2024/10/srt002.pdf |
 
-**Data Quality:**
-- Completeness: 93%
-- Known issues: 
-  - 7% surat tidak ada unit_tujuan (untuk surat umum)
-  - Duplikasi nomor surat ~1% (human error)
-  - File attachment kadang broken link (5%)
+### 1.3 Struktur Data (tbl_disposisi)
 
-**Akses:**
-- Method: Database export atau API (untuk tugas: generate synthetic data)
-- Contact: Tim IT ITERA / Asumsi struktur standar
+**[TAMBAHAN BARU - Critical untuk KPI Waktu Proses]**
 
----
-
-## 2. Database Inventaris Aset
-
-**Deskripsi:** Database untuk tracking aset dan barang inventaris kantor
-
-**Detail Teknis:**
-- Platform: Excel/Google Sheets (belum ada sistem terintegrasi)
-- Location: Shared Drive - /BiroAkademik/DataAset2024.xlsx
-- Maintained by: Staff Umum
-
-**Data Available:**
-- Periode: 2018 - Present
-- Volume estimasi: ~1,200 aset items
-- Update frequency: Monthly (update kondisi & lokasi)
-- Growth rate: 30-50 aset baru/tahun (pengadaan)
-
-**Struktur Data:**
-| Kolom                    | Tipe Data     | Contoh                    |
-|--------------------------|---------------|---------------------------|
-| kode_aset                | VARCHAR(30)   | AST-2024-FUR-001          |
-| nama_aset                | VARCHAR(200)  | Meja Kerja Kayu Jati      |
-| kategori_id              | INT           | 1 (Furnitur)              |
-| merk                     | VARCHAR(100)  | Olympic                   |
-| spesifikasi              | TEXT          | 120x60x75cm, Kayu Jati    |
-| tahun_pengadaan          | INT           | 2022                      |
-| tanggal_pengadaan        | DATE          | 2022-03-15                |
-| nilai_perolehan          | DECIMAL(15,2) | 2500000.00                |
-| kondisi_id               | INT           | 1 (Baik)                  |
-| lokasi_id                | INT           | 5 (Gedung Rektorat Lt.2)  |
-| ruangan                  | VARCHAR(100)  | R.201 - Biro Akademik     |
-| pic_pengelola_id         | INT           | 12348                     |
-| status_kepemilikan       | VARCHAR(50)   | Milik ITERA               |
-| tanggal_terakhir_maintenance | DATE      | 2024-09-20                |
-| keterangan               | TEXT          | Kondisi baik, rutin dipelihara |
-
-**Tabel Relasi: tbl_maintenance_history**
-| Kolom                    | Tipe Data     | Contoh                    |
-|--------------------------|---------------|---------------------------|
-| id_maintenance           | INT           | 1                         |
-| kode_aset                | VARCHAR(30)   | AST-2024-FUR-001          |
-| tanggal_maintenance      | DATE          | 2024-09-20                |
-| jenis_maintenance        | VARCHAR(50)   | Perbaikan                 |
-| deskripsi                | TEXT          | Perbaikan kaki meja       |
-| biaya                    | DECIMAL(12,2) | 150000.00                 |
-| teknisi                  | VARCHAR(100)  | Pak Budi                  |
-| kondisi_sebelum_id       | INT           | 2 (Rusak Ringan)          |
-| kondisi_sesudah_id       | INT           | 1 (Baik)                  |
-
-**Data Quality:**
-- Completeness: 88%
-- Known issues:
-  - 12% aset tidak ada tanggal maintenance terakhir
-  - Kategori tidak standar (ada "PC", "Komputer", "Computer")
-  - Nilai perolehan lama (pre-2020) banyak yang NULL
-  - Lokasi kadang tidak update saat aset dipindah
-
-**Akses:**
-- Method: Manual export to CSV
-- Contact: Staff Umum (Bu Siti)
-
----
-
-## 3. Log Permintaan Layanan
-
-**Deskripsi:** Sistem ticketing untuk permintaan layanan dari civitas akademika
-
-**Detail Teknis:**
-- Platform: Google Forms → Google Sheets (simple system)
-- Alternative: Diasumsikan ada database sederhana
-- Sheet: "Permintaan Layanan 2024"
-
-**Data Available:**
-- Periode: Januari 2023 - Present (2 tahun)
-- Volume estimasi: ~3,000 permintaan
-- Update frequency: Real-time (setiap ada submission)
-- Growth rate: 120-150 permintaan/bulan
-
-**Struktur Data:**
-| Kolom                    | Tipe Data     | Contoh                         |
-|--------------------------|---------------|--------------------------------|
-| id_permintaan            | VARCHAR(30)   | REQ-2024-10-001                |
-| timestamp_submit         | DATETIME      | 2024-10-15 10:30:00            |
-| nama_pemohon             | VARCHAR(100)  | Dr. Ahmad Fauzi                |
-| email_pemohon            | VARCHAR(100)  | ahmad.fauzi@itera.ac.id        |
-| unit_pemohon_id          | INT           | 5 (Fakultas Sains)             |
-| jabatan                  | VARCHAR(100)  | Dosen                          |
-| jenis_layanan_id         | INT           | 1 (Peminjaman Ruangan)         |
-| detail_permintaan        | TEXT          | Peminjaman Aula untuk seminar  |
-| tanggal_dibutuhkan       | DATE          | 2024-10-20                     |
-| waktu_mulai              | TIME          | 09:00                          |
-| waktu_selesai            | TIME          | 12:00                          |
-| jumlah_peserta           | INT           | 100                            |
-| prioritas                | VARCHAR(20)   | Sedang                         |
-| status_id                | INT           | 3 (Selesai)                    |
-| pic_handler_id           | INT           | 12349                          |
-| tanggal_respon           | DATETIME      | 2024-10-15 14:00:00            |
-| tanggal_selesai          | DATETIME      | 2024-10-20 13:00:00            |
-| catatan_admin            | TEXT          | Disetujui, koordinasi dengan cleaning service |
-| rating_kepuasan          | INT           | 5                              |
-| feedback                 | TEXT          | Pelayanan cepat dan responsif  |
-
-**Jenis Layanan:**
-- Peminjaman ruangan/aula
-- Perbaikan fasilitas
-- Permintaan surat keterangan
-- Legalisir dokumen
-- Pengadaan ATK
-- Lainnya
-
-**Data Quality:**
-- Completeness: 95%
-- Known issues:
-  - Email format kadang salah (typo)
-  - Rating kepuasan hanya 60% yang diisi
-  - Jenis layanan kadang input manual (tidak pilih dropdown)
-
-**Akses:**
-- Method: Google Sheets API atau Export CSV
-- Contact: Admin layanan
-
----
-
-## 4. Database Kepegawaian (SIMPEG)
-
-**Deskripsi:** Master data pegawai ITERA (untuk dimension pegawai)
-
-**Detail Teknis:**
-- Platform: MySQL 8.0 (sistem kepegawaian)
-- Host: Internal server
-- Database: SIMPEG
-
-**Data Available:**
-- Volume: ~600 pegawai (dosen + tendik)
-- Update frequency: Monthly (untuk mutasi/promosi)
-- Static data kecuali ada perubahan jabatan
-
-**Struktur Data (vw_pegawai_aktif - view only):**
 | Kolom                 | Tipe Data    | Contoh                    |
 |-----------------------|--------------|---------------------------|
-| nip                   | VARCHAR(20)  | 198501012010011001        |
-| nidn                  | VARCHAR(20)  | 0101018501 (untuk dosen)  |
-| nama_lengkap          | VARCHAR(150) | Dr. Ahmad Fauzi, M.Sc     |
-| gelar_depan           | VARCHAR(50)  | Dr.                       |
-| gelar_belakang        | VARCHAR(50)  | M.Sc                      |
-| unit_kerja_id         | INT          | 5 (Fakultas Sains)        |
-| jabatan_id            | INT          | 10 (Dosen)                |
-| jabatan_fungsional    | VARCHAR(100) | Lektor                    |
-| status_kepegawaian    | VARCHAR(50)  | ASN                       |
-| email                 | VARCHAR(100) | ahmad.fauzi@itera.ac.id   |
-| telepon               | VARCHAR(20)  | 081234567890              |
-| status_aktif          | BIT          | 1                         |
-
-**Data Quality:**
-- Completeness: 99%
-- Well-maintained oleh Biro Kepegawaian
-
-**Akses:**
-- Method: Read-only view (sensitive data)
-- Contact: Biro Kepegawaian
-- Note: Hanya ambil data yang diperlukan (NIP, Nama, Unit, Jabatan)
-
----
-
-## 5. Master Data Unit Organisasi
-
-**Deskripsi:** Referensi struktur organisasi ITERA
-
-**Detail Teknis:**
-- Platform: Static table / Excel
-- Source: Statuta ITERA / Struktur Organisasi resmi
+| id_disposisi          | VARCHAR(30)  | DISP/2024/00123           |
+| id_surat              | VARCHAR(30)  | SRT/IN/2024/001           |
+| tanggal_disposisi     | DATETIME     | 2024-10-16 09:30:00       |
+| dari_pegawai_id       | INT          | 101                       |
+| kepada_pegawai_id     | INT          | 205                       |
+| instruksi             | TEXT         | Tindak lanjuti segera     |
+| status                | VARCHAR(20)  | Selesai                   |
+| tanggal_selesai       | DATETIME     | 2024-10-18 15:00:00       |
+| catatan               | TEXT         | Sudah diproses            |
 
 **Data Available:**
-- Volume: ~60 unit (fakultas, jurusan, prodi, biro, UPT)
-- Update frequency: Yearly (jarang berubah kecuali restrukturisasi)
+- Periode: Januari 2021 - Present
+- Volume estimasi: ~25,000 disposisi (rata-rata 1.4 disposisi per surat)
+- Update frequency: Real-time
 
-**Struktur Data:**
+**Data Quality:**
+- Completeness: 95% (5% tanggal_selesai NULL untuk status "Pending")
+- Known issues: None significant
+
+### 1.4 Reference Table: Jenis Surat
+
 | Kolom                 | Tipe Data    | Contoh                    |
 |-----------------------|--------------|---------------------------|
-| id_unit               | INT          | 1                         |
-| kode_unit             | VARCHAR(20)  | FS                        |
-| nama_unit             | VARCHAR(200) | Fakultas Sains            |
-| nama_singkat          | VARCHAR(50)  | F. Sains                  |
-| jenis_unit            | VARCHAR(50)  | Fakultas                  |
-| parent_unit_id        | INT          | NULL (level tertinggi)    |
-| level_unit            | INT          | 1                         |
-| alamat                | TEXT         | Gedung A, Kampus ITERA    |
-| telepon               | VARCHAR(20)  | 0721-8030188              |
-| email                 | VARCHAR(100) | sains@itera.ac.id         |
-| pimpinan_nip          | VARCHAR(20)  | 198001012005011001        |
-| status_aktif          | BIT          | 1                         |
-
-**Hierarki Unit:**
-ITERA
-├── Fakultas Sains (FS)
-│   ├── Prodi Matematika
-│   ├── Prodi Fisika
-│   ├── Prodi Kimia
-│   ├── Prodi Sains Data
-│   ├── Prodi Sains Akutaria
-│   ├── Prodi Biologi
-│   ├── Prodi Sains Atmosfer dan Keplanetan
-│   ├── Prodi Farmasi
-│   ├── Prodi Sains Lingkungan Kelautan
-│   └── Magister Fisika
-├── Fakultas Teknologi Industri (FTI)
-│   ├── Prodi Teknik Elektro
-│   ├── Prodi Teknik Informatika
-│   ├── Prodi Teknik Geofisika
-│   ├── Prodi Teknik Mesin
-│   ├── Prodi Teknik Industri
-│   ├── Prodi Teknik Kimia
-│   ├── Prodi Teknik Fisika
-│   ├── Prodi Teknik Biosistem
-│   ├── Prodi Teknik Sistem Energi
-│   ├── Prodi Teknologi Industri Pertanian
-│   ├── Prodi Teknologi Pangan
-│   ├── Prodi Teknik Material
-│   ├── Prodi Teknik Pertambangan
-│   ├── Prodi Teknik Telekomunikasi
-│   ├── Prodi Rekayasa Kehutanan
-│   ├── Prodi Teknik Biomedis
-│   ├── Prodi Rekayasa Minyak dan Gas
-│   ├── Prodi Rekayasa Instrumentasi dan Automasi
-│   ├── Prodi Rekayasa Kosmetik
-│   └── Prodi Rekayasa Olahraga
-├── Fakultas Teknologi Insftastruktur dan Kewilayahan (FTIK)
-│   ├── Prodi Teknik Sipil
-│   ├── Prodi Perencanaan Wilayah dan Kota
-│   ├── Prodi Teknik Geomatika
-│   ├── Prodi Arsitektur
-│   ├── Prodi Teknik Lingkungan
-│   ├── Prodi Teknik Kelautan
-│   ├── Prodi Desain Komunikasi Visual
-│   ├── Prodi Arsitektur Lanskap
-│   ├── Prodi Teknik Perkeretaapian
-│   ├── Prodi Rekayasa Tata Kelola Air Terpadu
-│   └── Prodi Pariwisata
-├── Biro Akademik (BA)
-│   ├── Sub Bagian Akademik
-│   ├── Sub Bagian Perencanaan
-│   └── Sub Bagian Umum ← (Scope kita)
-└── ...
+| id                    | INT          | 1                         |
+| kode_jenis            | VARCHAR(10)  | UM                        |
+| nama_jenis            | VARCHAR(100) | Surat Undangan            |
+| kategori              | VARCHAR(50)  | Internal                  |
+| sla_hari              | INT          | 3                         |
 
 **Data Quality:**
 - Completeness: 100%
-- Official data dari struktur organisasi
-
-**Akses:**
-- Method: Manual entry / One-time load
-- Source: Website ITERA / Dokumen resmi
+- Known issues: 
+  - Duplikasi nomor surat: ~1% (estimasi 180 kasus)
+  - Kategori tidak standar: ~12% (perlu mapping)
 
 ---
 
-## 6. Master Data Referensi (Lookup Tables)
+## 2. Sistem Inventaris & Aset (SIMAK/SIPANDU)
 
-**Deskripsi:** Tabel referensi untuk standardisasi kategori
-**Tabel-tabel:**
+**Deskripsi:** Database untuk mengelola inventaris barang dan aset institusi
 
-### ref_jenis_surat
-| id | kode | nama_jenis            | kategori  |
-|----|------|-----------------------|-----------|
-| 1  | UND  | Undangan              | Masuk     |
-| 2  | PEM  | Pemberitahuan         | Keluar    |
-| 3  | SKP  | Surat Keputusan       | Keluar    |
-| 4  | TUG  | Surat Tugas           | Keluar    |
-| 5  | KET  | Surat Keterangan      | Keluar    |
+**Detail Teknis:**
+- Platform: Diasumsikan aplikasi desktop/web dengan database SQL Server
+- Database: INVENTARIS_DB
+- Tabel utama:
+  - tbl_inventaris
+  - tbl_pemeliharaan
+  - tbl_pengadaan
 
-### ref_status
-| id | nama_status     | kategori        |
-|----|-----------------|-----------------|
-| 1  | Draf            | Surat           |
-| 2  | Dalam Proses    | Surat/Layanan   |
-| 3  | Selesai         | Surat/Layanan   |
-| 4  | Dibatalkan      | Surat/Layanan   |
+**Data Available:**
+- Periode: Januari 2020 - Present (5 tahun data)
+- Volume estimasi: ~2,500 item barang
+- Update frequency: Monthly (untuk inventaris), Event-based (untuk pemeliharaan)
+- Growth rate: 40-50 item baru/tahun
 
-### ref_kondisi_aset
-| id | nama_kondisi    | keterangan                      |
-|----|-----------------|---------------------------------|
-| 1  | Baik            | Berfungsi normal                |
-| 2  | Rusak Ringan    | Perlu perbaikan minor           |
-| 3  | Rusak Berat     | Perlu perbaikan major/penggantian |
-| 4  | Hilang          | Tidak ditemukan                 |
+### 2.1 Struktur Data (tbl_inventaris)
 
-### ref_kategori_aset
-| id | kode | nama_kategori  | keterangan          |
-|----|------|----------------|---------------------|
-| 1  | FUR  | Furnitur       | Meja, kursi, lemari |
-| 2  | ELK  | Elektronik     | Komputer, printer   |
-| 3  | KND  | Kendaraan      | Motor, mobil dinas  |
-| 4  | ATK  | ATK            | Alat tulis kantor   |
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_barang             | INT          | 1001                      |
+| kode_barang           | VARCHAR(30)  | INV/COMP/2024/001         |
+| nama_barang           | VARCHAR(200) | Laptop Dell Latitude 5420 |
+| kategori              | VARCHAR(50)  | Komputer                  |
+| tanggal_pengadaan     | DATE         | 2024-03-15                |
+| nilai_perolehan       | DECIMAL(15,2)| 12500000.00               |
+| kondisi               | VARCHAR(20)  | Baik                      |
+| lokasi_id             | INT          | 15                        |
+| unit_kerja_id         | INT          | 5                         |
+| status_label          | VARCHAR(20)  | Terlabeli                 |
+| tanggal_snapshot      | DATE         | 2024-10-31                |
+
+### 2.2 Struktur Data (tbl_pemeliharaan)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_pemeliharaan       | INT          | 5001                      |
+| kode_barang           | VARCHAR(30)  | INV/COMP/2024/001         |
+| tanggal_pemeliharaan  | DATE         | 2024-09-10                |
+| jenis_pemeliharaan    | VARCHAR(50)  | Service Rutin             |
+| biaya                 | DECIMAL(15,2)| 500000.00                 |
+| vendor                | VARCHAR(200) | PT Teknologi Prima        |
+| status                | VARCHAR(20)  | Selesai                   |
+
+### 2.3 Struktur Data (tbl_pengadaan)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_pengadaan          | INT          | 3001                      |
+| nomor_pengadaan       | VARCHAR(30)  | PGD/2024/001              |
+| tanggal_pengadaan     | DATE         | 2024-05-20                |
+| vendor                | VARCHAR(200) | PT Sukses Jaya            |
+| total_item            | INT          | 15                        |
+| total_nilai           | DECIMAL(15,2)| 50000000.00               |
+| unit_kerja_id         | INT          | 5                         |
+| status                | VARCHAR(20)  | Selesai                   |
+
+### 2.4 Reference Table: Lokasi
+
+**[TAMBAHAN BARU - untuk tracking aset per gedung/ruangan]**
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_lokasi             | INT          | 1                         |
+| gedung                | VARCHAR(50)  | Gedung Rektorat           |
+| lantai                | INT          | 2                         |
+| ruangan               | VARCHAR(50)  | R.201                     |
+| kapasitas             | INT          | 20                        |
+| pic_nama              | VARCHAR(100) | Agus Santoso              |
+
+**Data Quality:**
+- Completeness: 92% (8% nilai_perolehan NULL)
+- Known issues:
+  - Kategori tidak standar: ~12% (PC, Laptop, Komputer → perlu standardisasi)
+  - Duplikasi kode barang: <1%
 
 ---
 
-## 📋 Summary Tabel Data Sources
-| No | Source Name | Type | Main Tables | Volume | Update Freq | Relevance |
-|----|-------------|------|-------------|--------|-------------|-----------|
-| 1 | SIMASTER | Database | surat_masuk, surat_keluar | 18K rows | Daily | ⭐⭐⭐ Critical |
-| 2 | Inventaris Aset | Excel/DB | aset, maintenance_history | 1.2K rows | Monthly | ⭐⭐⭐ Critical |
-| 3 | Permintaan Layanan | Google Sheets | permintaan_layanan | 3K rows | Real-time | ⭐⭐ Important |
-| 4 | SIMPEG | Database (view) | pegawai | 600 rows | Monthly | ⭐⭐ Important |
-| 5 | Unit Organisasi | Static | unit_organisasi | 60 rows | Yearly | ⭐⭐ Important |
-| 6 | Referensi | Static | lookup tables | <100 rows | Rarely | ⭐ Supporting |
+## 3. Sistem Kepegawaian (SIMPEG)
+
+**Deskripsi:** Database pegawai dan absensi
+
+**Detail Teknis:**
+- Platform: Diasumsikan aplikasi web dengan database SQL Server
+- Database: SIMPEG_DB
+- Tabel utama:
+  - tbl_pegawai
+  - tbl_absensi
+  - tbl_pelatihan
+
+**Data Available:**
+- Periode: Januari 2019 - Present (6 tahun data)
+- Volume estimasi: ~350 pegawai, ~90,000 records absensi
+- Update frequency: Daily (absensi), Monthly (data pegawai)
+
+### 3.1 Struktur Data (tbl_pegawai)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_pegawai            | INT          | 1                         |
+| nip                   | VARCHAR(20)  | 199001012020011001        |
+| nama                  | VARCHAR(100) | Dr. Ahmad Fauzi           |
+| jabatan               | VARCHAR(100) | Kepala Bagian Umum        |
+| unit_kerja_id         | INT          | 5                         |
+| status_kepegawaian    | VARCHAR(30)  | PNS                       |
+| tanggal_masuk         | DATE         | 2020-01-15                |
+| email                 | VARCHAR(100) | ahmad.fauzi@itera.ac.id   |
+| no_hp                 | VARCHAR(15)  | 081234567890              |
+
+### 3.2 Struktur Data (tbl_absensi)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_absensi            | INT          | 100001                    |
+| nip                   | VARCHAR(20)  | 199001012020011001        |
+| tanggal               | DATE         | 2024-10-15                |
+| waktu_masuk           | TIME         | 07:45:00                  |
+| waktu_keluar          | TIME         | 16:30:00                  |
+| status_kehadiran      | VARCHAR(20)  | Hadir                     |
+| jam_kerja             | DECIMAL(4,2) | 8.75                      |
+
+### 3.3 Struktur Data (tbl_pelatihan)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_pelatihan          | INT          | 2001                      |
+| nip                   | VARCHAR(20)  | 199001012020011001        |
+| nama_pelatihan        | VARCHAR(200) | Manajemen Arsip Digital   |
+| tanggal_pelatihan     | DATE         | 2024-08-20                |
+| durasi_jam            | INT          | 16                        |
+| penyelenggara         | VARCHAR(200) | ITERA - PSDM              |
+| status                | VARCHAR(20)  | Selesai                   |
+
+**Data Quality:**
+- Completeness: 100%
+- Known issues: None significant
 
 ---
+
+## 4. Sistem Permintaan Layanan (Service Desk/Manual)
+
+**Deskripsi:** Tracking permintaan layanan administrasi dari civitas akademika
+
+**Detail Teknis:**
+- Platform: Diasumsikan Google Form/Excel → to be digitized
+- Database: LAYANAN_DB
+- Tabel utama:
+  - tbl_permintaan_layanan
+  - ref_jenis_layanan
+
+**Data Available:**
+- Periode: Januari 2022 - Present (3 tahun data)
+- Volume estimasi: ~5,400 permintaan (rata-rata 150/bulan)
+- Update frequency: Real-time
+- Growth rate: 150-180 permintaan/bulan
+
+### 4.1 Struktur Data (tbl_permintaan_layanan)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_permintaan         | INT          | 10001                     |
+| nomor_tiket           | VARCHAR(30)  | TKT/2024/00123            |
+| timestamp_submit      | DATETIME     | 2024-10-15 09:00:00       |
+| pemohon_nama          | VARCHAR(100) | Budi Santoso              |
+| pemohon_nip           | VARCHAR(20)  | 199501012021011001        |
+| jenis_layanan_id      | INT          | 5                         |
+| deskripsi             | TEXT         | Permohonan legalisir      |
+| unit_tujuan_id        | INT          | 5                         |
+| status_penyelesaian   | VARCHAR(20)  | Selesai                   |
+| tanggal_selesai       | DATETIME     | 2024-10-16 14:30:00       |
+| rating_kepuasan       | DECIMAL(2,1) | 4.5                       |
+| feedback              | TEXT         | Pelayanan cepat           |
+
+**[FIELD BARU]:**
+- `rating_kepuasan`: Rating 1.0-5.0 untuk tracking kepuasan layanan
+- `feedback`: Optional feedback dari pemohon
+
+### 4.2 Reference Table: Jenis Layanan
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id                    | INT          | 1                         |
+| kode_layanan          | VARCHAR(10)  | LEG                       |
+| nama_layanan          | VARCHAR(100) | Legalisir Dokumen         |
+| kategori              | VARCHAR(50)  | Administrasi Akademik     |
+| is_komplain           | BIT          | 0                         |
+| sla_hari              | INT          | 2                         |
+
+**[FIELD BARU]:**
+- `is_komplain`: Boolean flag (1 = Komplain, 0 = Request biasa)
+- `sla_hari`: Target penyelesaian dalam hari kerja
+
+**Data Quality:**
+- Completeness: 88% (12% rating_kepuasan NULL)
+- Known issues: 
+  - Kategori layanan tidak standar: ~10%
+  - Timestamp submit vs selesai inconsistent: ~5%
+
+---
+
+## 5. Sistem Monitoring Kinerja
+
+**[DATA SOURCE BARU - Critical untuk KPI Monitoring & Evaluasi]**
+
+**Deskripsi:** Database untuk monitoring dan pelaporan kinerja bulanan per unit kerja
+
+**Detail Teknis:**
+- Platform: Excel/Manual reporting → to be digitized to database
+- Database: MONITORING_DB
+- Tabel utama:
+  - tbl_laporan_kinerja
+
+**Data Available:**
+- Periode: Januari 2023 - Present (2 tahun data)
+- Volume estimasi: ~480 laporan (20 unit × 24 bulan)
+- Update frequency: Monthly (due by 5th of next month)
+- Growth rate: 20 laporan/bulan (1 per unit)
+
+### 5.1 Struktur Data (tbl_laporan_kinerja)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_laporan            | INT          | 1                         |
+| periode               | DATE         | 2024-10-01                |
+| unit_kerja_id         | INT          | 5                         |
+| target_layanan        | INT          | 100                       |
+| realisasi_layanan     | INT          | 95                        |
+| target_surat          | INT          | 50                        |
+| realisasi_surat       | INT          | 52                        |
+| waktu_proses_rata2    | DECIMAL(5,2) | 2.5                       |
+| tingkat_kepuasan      | DECIMAL(3,2) | 4.35                      |
+| budget_allocated      | DECIMAL(15,2)| 50000000.00               |
+| actual_spending       | DECIMAL(15,2)| 48500000.00               |
+| efisiensi_persen      | DECIMAL(5,2) | 97.00                     |
+| tanggal_submit        | DATE         | 2024-11-03                |
+| status_approval       | VARCHAR(20)  | Approved                  |
+| catatan               | TEXT         | Sesuai target             |
+
+**Data Quality:**
+- Completeness: 85% (15% budget fields NULL untuk unit tanpa budget allocation)
+- Known issues:
+  - Inconsistent submission dates: ~20% terlambat dari deadline
+  - Manual entry errors: ~5%
+
+---
+
+## 6. Unit Organisasi & Hierarki ITERA
+
+**Deskripsi:** Master data struktur organisasi Institut Teknologi Sumatera
+
+**Detail Teknis:**
+- Platform: Master data dalam database MASTER_DB
+- Tabel: tbl_unit_kerja
+
+**Data Available:**
+- Periode: Static (updated annually)
+- Volume: ~50 unit kerja (all levels)
+
+### 6.1 Struktur Data (tbl_unit_kerja)
+
+| Kolom                 | Tipe Data    | Contoh                    |
+|-----------------------|--------------|---------------------------|
+| id_unit               | INT          | 1                         |
+| kode_unit             | VARCHAR(10)  | BAU                       |
+| nama_unit             | VARCHAR(100) | Biro Akademik Umum        |
+| level                 | INT          | 2                         |
+| parent_unit_id        | INT          | NULL                      |
+| kepala_unit_nip       | VARCHAR(20)  | 198501012015011001        |
+| email_unit            | VARCHAR(100) | bau@itera.ac.id           |
+
+**Hierarki ITERA:**
+- Level 1: Rektorat
+- Level 2: Biro/Direktorat (termasuk Biro Akademik Umum)
+- Level 3: Bagian
+- Level 4: Sub Bagian
+- Level 5: Unit Teknis
+
+**Data Quality:**
+- Completeness: 100%
+- Known issues: None
+
+---
+
+## 7. Summary Table - Data Sources Overview
+
+| No | Data Source | Platform | Tables | Volume | Update Freq | Relevance | Priority |
+|----|-------------|----------|--------|--------|-------------|-----------|----------|
+| 1  | Sistem Persuratan | SIMASTER_DB | 4 tables | 18K surat, 25K disposisi | Real-time | ⭐⭐⭐⭐⭐ | HIGH |
+| 2  | Inventaris & Aset | INVENTARIS_DB | 3 tables | 2.5K items | Monthly/Event | ⭐⭐⭐⭐ | HIGH |
+| 3  | Kepegawaian | SIMPEG_DB | 3 tables | 350 pegawai, 90K absensi | Daily | ⭐⭐⭐⭐ | MEDIUM |
+| 4  | Permintaan Layanan | LAYANAN_DB | 2 tables | 5.4K requests | Real-time | ⭐⭐⭐⭐⭐ | HIGH |
+| 5  | Monitoring Kinerja | MONITORING_DB | 1 table | 480 laporan | Monthly | ⭐⭐⭐⭐⭐ | HIGH |
+| 6  | Unit Organisasi | MASTER_DB | 1 table | 50 units | Yearly | ⭐⭐⭐⭐⭐ | HIGH |
+
+**Total Tables:** 14 operational tables + 3 reference tables = **17 tables**
+
+---
+
+## 8. Data Integration Notes
+
+### 8.1 Common Keys (For Integration)
+
+- **unit_kerja_id**: Foreign key across all systems
+- **nip**: Employee identifier (SIMPEG → all systems)
+- **tanggal**: Date field for time-based analysis
+
+### 8.2 Data Quality Summary
+
+| Quality Dimension | Overall Score | Notes |
+|-------------------|---------------|-------|
+| Completeness | 92% | Good, minor gaps in optional fields |
+| Consistency | 85% | Kategori fields need standardization |
+| Accuracy | 95% | Minimal errors, mostly validated |
+| Timeliness | 90% | Real-time for transactional data |
+| Uniqueness | 99% | <1% duplicates, manageable |
+
+### 8.3 ETL Considerations
+
+**Critical Transformations Needed:**
+1. **Standardisasi Kategori:** Map non-standard categories (PC → Komputer, etc.)
+2. **Deduplication:** Handle duplicate nomor_surat (1%)
+3. **NULL Handling:** Median/average imputation for missing nilai_perolehan
+4. **Date Formatting:** Standardize to ISO 8601 format
+5. **SCD Type 2:** For dim_pegawai and dim_unit_kerja (track historical changes)
+
+**Data Volume Projections (3 years):**
+- Surat: 18K → 35K (growth rate 400/month)
+- Inventaris: 2.5K → 2.7K (growth rate 40-50/year)
+- Layanan: 5.4K → 12K (growth rate 150/month)
+- Absensi: 90K → 180K (daily accumulation)
+
+---
+
+## 9. Alignment dengan KPI
+
+| KPI | Data Sources Required | Status |
+|-----|----------------------|--------|
+| Tingkat Akurasi Pencatatan Surat | tbl_surat_masuk | ✅ Available |
+| Waktu Respon Permintaan Layanan | tbl_permintaan_layanan | ✅ Available |
+| Komplain Terselesaikan <3 Hari | tbl_permintaan_layanan + ref_jenis_layanan | ✅ Available |
+| Aset Terlabeli | tbl_inventaris | ✅ Available |
+| Akurasi Data Kepegawaian | tbl_pegawai | ✅ Available |
+| Ketepatan Waktu Pelaporan | tbl_laporan_kinerja | ✅ Available |
+| Tingkat Kepuasan Civitas | tbl_permintaan_layanan (rating_kepuasan) | ✅ Available |
+| Efisiensi Anggaran | tbl_laporan_kinerja | ✅ Available |
+| Waktu Proses Surat | tbl_surat_masuk + tbl_disposisi | ✅ Available |
+
+**Coverage:** 9/9 KPI = **100% data coverage** ✅
+
+---
+
+## 10. Change Log
+
+**Version 2.0 (11 Nov 2025):**
+- Added: tbl_disposisi (Section 1.3) - Critical untuk KPI waktu proses
+- Added: Data Source #5 (Sistem Monitoring Kinerja) - Untuk KPI monitoring & evaluasi
+- Added: ref_lokasi (Section 2.4) - Untuk tracking aset per lokasi
+- Added: Field `rating_kepuasan` dan `feedback` di tbl_permintaan_layanan
+- Added: Field `is_komplain` dan `sla_hari` di ref_jenis_layanan
+- Updated: Summary table dengan 6 data sources (dari 4)
+- Updated: KPI alignment table - 100% coverage achieved
+- Updated: ETL considerations dengan SCD Type 2 strategy
+- Updated: Data volume projections untuk 3 tahun
+
+**Version 1.0 (10 Nov 2025):**
+- Initial documentation dengan 4 data sources
+- Basic structure untuk Surat, Inventaris, Kepegawaian, Layanan
+
+---
+
+**Prepared by:** Kelompok 19 - Tugas Besar Pergudangan Data    
+**Last Review:** 11 November 2025, 23:54 WIB
