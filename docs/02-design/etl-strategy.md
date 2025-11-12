@@ -454,7 +454,7 @@ ORDER BY execution_date DESC, job_name;
 **Email Alerts (via Database Mail):**
 
 ```sql
--- Configure alert for critical failures
+-- Configure alert for critical failure
 CREATE PROCEDURE etl.send_failure_alert
     @job_name VARCHAR(100),
     @error_message VARCHAR(MAX)
