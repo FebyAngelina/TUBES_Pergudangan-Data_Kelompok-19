@@ -40,7 +40,7 @@
 | hari_dalam_bulan | INT | DAY(tanggal) | Day of month | 15 |
 
 **SQL Generation Script:**
-`-- Generate date dimension 2019-2030
+```-- Generate date dimension 2019-2030
 DECLARE @StartDate DATE = '2019-01-01';
 DECLARE @EndDate DATE = '2030-12-31';
 WHILE @StartDate <= @EndDate
@@ -59,7 +59,7 @@ DATEPART(week, @StartDate),
 DAY(@StartDate)
 );
 SET @StartDate = DATEADD(day, 1, @StartDate);
-END;`
+END;```
 ---
 
 
