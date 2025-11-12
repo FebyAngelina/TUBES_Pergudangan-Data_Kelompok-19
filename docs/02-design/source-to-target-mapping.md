@@ -287,5 +287,5 @@ d.tanggal_selesai,
 d.status
 FROM tbl_surat_masuk s
 LEFT JOIN tbl_disposisi d ON s.id_surat = d.id_surat
-WHERE d.status = 'Selesai' OR d.id_disposisi IS NULL;`
+WHERE d.status = 'Selesai' OR d.id_disposisi IS NULL;'
 
