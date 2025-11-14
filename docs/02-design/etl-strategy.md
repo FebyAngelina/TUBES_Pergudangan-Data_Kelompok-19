@@ -830,14 +830,9 @@ END;
     - **Role:** ETL development, troubleshooting, performance optimization
 
 **Syahrialdi Rachim Akbar** - Project Lead & Database Designer
-    - **Email:** syahrialdi.123450093@student.itera.ac.id
-    - **Role:** Architecture decisions, escalation point, stakeholder communication
+      - **Email:** syahrialdi.123450093@student.itera.ac.id
+      - **Role:** Architecture decisions, escalation point, stakeholder communication
 
-**Escalation Path:**
-
-1. **ETL Developer (Zahra)** - First line
-2. **Project Lead (Aldi)** - Second line
-3. **Dosen Pembimbing** - Final escalation
 
 Prepared by: Kelompok 19 - Tugas Besar Pergudangan Data
 Last Updated: 17 November 2025, 16:04 WIB
