@@ -116,7 +116,6 @@ END;
 | - | - | System-generated | effective_date | DATE | SCD start date | → 2024-01-01 |
 | - | - | System-generated | end_date | DATE | SCD end date, 9999-12-31 for current | → 9999-12-31 |
 | - | - | System-generated | is_current | BIT | 1 for current record | → 1 |
-| -            | -    | Constant 1                    | is_current | BIT/BOOLEAN | 1 = record versi terkini, 0 = histori lama | → 1 |
 
 
 **SCD Type 2 Logic:**
@@ -154,6 +153,9 @@ VALUES (@nip, @nama, @jabatan_new, @unit_key_new, @status, @tanggal_masuk, @emai
 | nama_jenis | VARCHAR(100) | TRIM(), INITCAP() | nama_jenis_surat | VARCHAR(100) | - | surat undangan → Surat Undangan |
 | kategori | VARCHAR(50) | TRIM() | kategori | VARCHAR(50) | Internal, Eksternal, Edaran | Internal → Internal |
 | sla_hari | INT | Direct | sla_hari | INT | Target processing days | 3 → 3 |
+| sifat     | VARCHAR(20) | TRIM()          | sifat     | VARCHAR(20) | Sifat surat (Biasa/Penting/Rahasia/Segera) | Penting → Penting |
+| -         | -           | Constant 1      | is_active | BIT         | 1 = jenis surat aktif                      | → 1               |
+
 
 **Data Quality Rules:**
 - kategori must be in ('Internal', 'Eksternal', 'Edaran', 'Umum')
