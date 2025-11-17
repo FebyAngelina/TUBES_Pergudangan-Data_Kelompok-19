@@ -344,36 +344,51 @@ df['is_nilai_estimated'] = df['nilai_perolehan'].isnull().astype(int)
 ```
 **Snapshot Logic**
 ```sql
--- Monthly snapshot on last day
+-- Monthly snapshot on last day of month
+DECLARE @SnapshotDate DATE = EOMONTH(GETDATE());
+
 INSERT INTO fact_aset (
 tanggal_snapshot_key,
 barang_key,
 lokasi_key,
 unit_pemilik_key,
-nilai_buku,
-kondisi_score,
 jumlah_unit,
-status
+nilai_perolehan,
+nilai_buku,
+umur_ekonomis_tahun,
+umur_tersisa_tahun,
+kondisi,
+status_pemanfaatan
 )
 SELECT
-(SELECT tanggal_key FROM dim_waktu WHERE tanggal = EOMONTH(GETDATE())) AS tanggal_snapshot_key,
-b.barang_key,
-l.lokasi_key,
-u.unit_key,
-ISNULL(i.nilai_perolehan, 0) AS nilai_buku,
-CASE i.kondisi
-WHEN 'Baik' THEN 5
-WHEN 'Cukup' THEN 3
-WHEN 'Rusak' THEN 1
-ELSE 0
-END AS kondisi_score,
-1 AS jumlah_unit,
-i.kondisi AS status
+dw.tanggal_key AS tanggal_snapshot_key,
+b.barang_key AS barang_key,
+l.lokasi_key AS lokasi_key,
+u.unit_key AS unit_pemilik_key,
+COALESCE(i.jumlah_unit, 1) AS jumlah_unit,
+COALESCE(i.nilai_perolehan, 0) AS nilai_perolehan,
+-- Versi awal: nilai_buku = nilai_perolehan (belum pakai depresiasi penuh)
+COALESCE(i.nilai_perolehan, 0) AS nilai_buku,
+i.umur_ekonomis_tahun AS umur_ekonomis_tahun,
+-- Umur tersisa = umur ekonomis - umur pakai (dibatasi minimum 0)
+CASE
+WHEN i.umur_ekonomis_tahun IS NULL
+OR i.tahun_perolehan IS NULL THEN NULL
+ELSE
+GREATEST(
+i.umur_ekonomis_tahun
+- DATEDIFF(year, DATEFROMPARTS(i.tahun_perolehan,1,1), @SnapshotDate),
+0
+)
+END AS umur_tersisa_tahun,
+i.kondisi AS kondisi,
+i.status_pemanfaatan AS status_pemanfaatan
 FROM tbl_inventaris i
 INNER JOIN dim_barang b ON i.kode_barang = b.kode_barang
 INNER JOIN dim_lokasi l ON i.lokasi_id = l.lokasi_key
 INNER JOIN dim_unit_kerja u ON i.unit_kerja_id = u.unit_key
-WHERE i.tanggal_snapshot = EOMONTH(GETDATE());
+INNER JOIN dim_waktu dw ON dw.tanggal = @SnapshotDate
+WHERE i.tanggal_snapshot = @SnapshotDate;
 ```
 ---
 
