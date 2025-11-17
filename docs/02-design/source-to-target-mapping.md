@@ -84,6 +84,8 @@ END;
 | email_unit | VARCHAR(100) | LOWER(TRIM()) | email_unit | VARCHAR(100) | Lowercase for consistency | BAU@ITERA.AC.ID → bau@itera.ac.id |
 | - | - | Calculated | path_hierarchy | VARCHAR(500) | Recursive CTE for full path | → Rektorat > Biro Akademik Umum |
 | - | - | Calculated | jumlah_sub_unit | INT | COUNT of child units | → 3 |
+| -          | -    | Constant 1                    | is_active  | BIT/BOOLEAN | 1 = unit kerja aktif (default); bisa diubah jika nanti ada flag non-aktif di source | → 1 |
+
 
 **ETL Notes:**
 - Load order: Top-down (Level 1 → 5) untuk maintain parent-child integrity
@@ -114,6 +116,8 @@ END;
 | - | - | System-generated | effective_date | DATE | SCD start date | → 2024-01-01 |
 | - | - | System-generated | end_date | DATE | SCD end date, 9999-12-31 for current | → 9999-12-31 |
 | - | - | System-generated | is_current | BIT | 1 for current record | → 1 |
+| -            | -    | Constant 1                    | is_current | BIT/BOOLEAN | 1 = record versi terkini, 0 = histori lama | → 1 |
+
 
 **SCD Type 2 Logic:**
 ```sql
@@ -146,8 +150,8 @@ VALUES (@nip, @nama, @jabatan_new, @unit_key_new, @status, @tanggal_masuk, @emai
 | Source Column | Source Type | Transformation | Target Column | Target Type | Business Rule | Sample Input → Output |
 |---------------|-------------|----------------|---------------|-------------|---------------|----------------------|
 | id | INT | Direct | jenis_surat_key | INT | PK | 1 → 1 |
-| kode_jenis | VARCHAR(10) | UPPER(TRIM()) | kode_jenis | VARCHAR(10) | Business key | um → UM |
-| nama_jenis | VARCHAR(100) | TRIM(), INITCAP() | nama_jenis | VARCHAR(100) | - | surat undangan → Surat Undangan |
+| kode_jenis | VARCHAR(10) | UPPER(TRIM()) | kode_jenis_surat | VARCHAR(10) | Business key | um → UM |
+| nama_jenis | VARCHAR(100) | TRIM(), INITCAP() | nama_jenis_surat | VARCHAR(100) | - | surat undangan → Surat Undangan |
 | kategori | VARCHAR(50) | TRIM() | kategori | VARCHAR(50) | Internal, Eksternal, Edaran | Internal → Internal |
 | sla_hari | INT | Direct | sla_hari | INT | Target processing days | 3 → 3 |
 
@@ -157,22 +161,27 @@ VALUES (@nip, @nama, @jabatan_new, @unit_key_new, @status, @tanggal_masuk, @emai
 
 ---
 
-### 1.5 DIM_BARANG (Asset/Inventory Item)
+### 1.5 DIM_BARANG (Item / Asset Dimension)
 
 **Source System:** INVENTARIS_DB  
-**Source Table:** tbl_inventaris (reference data extracted)  
-**Load Frequency:** Weekly  
-**SCD Type:** Type 1  
-**Grain:** Per item barang unik
+**Source Table:** tbl_inventaris (distinct by kode_barang)  
+**Load Frequency:** On change (full reload kecil saat ada barang baru)  
+**SCD Type:** Type 1 (overwrite)  
+**Grain:** 1 baris per jenis barang unik (per kode_barang)
 
-| Source Column | Source Type | Transformation | Target Column | Target Type | Business Rule | Sample Input → Output |
-|---------------|-------------|----------------|---------------|-------------|---------------|----------------------|
-| - | - | Generated from kode_barang | barang_key | INT | PK, Surrogate | → 1 (auto) |
-| kode_barang | VARCHAR(30) | UPPER(TRIM()) | kode_barang | VARCHAR(30) | Business key | inv/comp/2024/001 → INV/COMP/2024/001 |
-| nama_barang | VARCHAR(200) | TRIM(), INITCAP() | nama_barang | VARCHAR(200) | - | laptop dell latitude 5420 → Laptop Dell Latitude 5420 |
-| kategori | VARCHAR(50) | Standardize via mapping | kategori | VARCHAR(50) | Map PC/Laptop → Komputer | PC → Komputer |
-| - | - | Derived from kategori | subkategori | VARCHAR(50) | More specific | Komputer → Laptop |
-| - | - | Extracted | satuan | VARCHAR(20) | Unit of measurement | → Unit |
+| Source Column    | Source Type    | Transformation                        | Target Column        | Target Type   | Business Rule                                                                                  | Sample Input → Output                |
+|------------------|----------------|---------------------------------------|----------------------|---------------|-----------------------------------------------------------------------------------------------|--------------------------------------|
+| id_barang        | INT            | Direct                                | barang_key           | INTEGER       | Surrogate key dim_barang (bisa diganti sequence di implementasi fisik).                      | 1001 → 1001                          |
+| kode_barang      | VARCHAR(30)    | UPPER(TRIM())                         | kode_barang          | VARCHAR(30)   | Kode barang dari sistem inventaris; distandarkan ke huruf besar tanpa spasi ekstra.          | " inv/comp/2024/001 " → "INV/COMP/2024/001" |
+| nama_barang      | VARCHAR(200)   | TRIM(), INITCAP()                     | nama_barang          | VARCHAR(200)  | Nama barang; huruf awal tiap kata kapital, spasi dirapikan.                                  | "laptop dell latitude 5420" → "Laptop Dell Latitude 5420" |
+| kategori         | VARCHAR(50)    | TRIM()                                | kategori_barang      | VARCHAR(50)   | Kategori umum barang (Elektronik, Furnitur, Kendaraan, dll.); mapping cleaning di rules ETL. | " komputer " → "komputer"           |
+| kategori         | VARCHAR(50)    | Mapping kategori → subkategori (opsional, via lookup) | subkategori_barang   | VARCHAR(50)   | Subkategori barang (Laptop, Proyektor, Kursi, dll.); hasil standardisasi kategori rinci.     | "komputer" → "Laptop"               |
+| NULL             | -              | Constant 'unit'                       | satuan               | VARCHAR(20)   | Satuan default "unit" untuk sebagian besar aset; bisa diganti jika nanti ada field satuan.   | NULL → "unit"                        |
+| nama_barang      | VARCHAR(200)   | Ekstrak merk dari awal nama (opsional) | merk                 | VARCHAR(50)   | Merk barang; dapat diisi manual atau menggunakan rule sederhana (kata pertama dari nama).    | "Laptop Dell Latitude 5420" → "Dell" |
+| nama_barang      | VARCHAR(200)   | TRIM()                                | spesifikasi          | VARCHAR(255)  | Ringkasan spesifikasi teknis; sementara isi dengan nama lengkap jika belum ada detail lain. | "Laptop Dell Latitude 5420" → "Laptop Dell Latitude 5420" |
+| kategori         | VARCHAR(50)    | CASE WHEN kategori ILIKE '%Kursi%' OR kategori ILIKE '%Meja%' THEN 0 ELSE 1 END | is_bergerak          | BOOLEAN       | Flag TRUE jika aset bersifat bergerak (umumnya elektronik/peralatan kecil), FALSE untuk furnitur besar. | "Komputer" → 1; "Meja Kerja" → 0    |
+| kategori         | VARCHAR(50)    | CASE WHEN kategori ILIKE '%Komputer%' OR kategori ILIKE '%Laptop%' OR kategori ILIKE '%Printer%' THEN 1 ELSE 0 END | is_tik               | BOOLEAN       | TRUE jika aset termasuk kategori TIK (komputer, laptop, printer, dll.).                     | "Komputer" → 1; "Lemari Arsip" → 0  |
+
 
 **Kategori Standardization Mapping:**
 **Python transformation**
@@ -194,42 +203,41 @@ df['kategori'] = df['kategori'].map(kategori_mapping).fillna('Lainnya')
 ```
 ---
 
-### 1.6 DIM_LOKASI (Location)
+### 1.6 DIM_LOKASI (Location Dimension)
 
 **Source System:** INVENTARIS_DB  
-**Source Table:** ref_lokasi  
-**Load Frequency:** Monthly  
-**SCD Type:** Type 1  
-**Grain:** Per lokasi fisik
+**Source Table:** ref_lokasi (atau distinct dari tbl_inventaris.lokasi_id + master ruangan)  
+**Load Frequency:** On change (ketika ada lokasi/ruangan baru)  
+**SCD Type:** Type 1 (overwrite)  
+**Grain:** 1 baris per lokasi/ruangan unik  
 
-| Source Column | Source Type | Transformation | Target Column | Target Type | Business Rule | Sample Input → Output |
-|---------------|-------------|----------------|---------------|-------------|---------------|----------------------|
-| id_lokasi | INT | Direct | lokasi_key | INT | PK | 15 → 15 |
-| gedung | VARCHAR(50) | TRIM(), INITCAP() | gedung | VARCHAR(50) | - | gedung rektorat → Gedung Rektorat |
-| lantai | INT | Direct | lantai | INT | - | 2 → 2 |
-| ruangan | VARCHAR(50) | UPPER(TRIM()) | ruangan | VARCHAR(50) | Standardize format | r.201 → R.201 |
-| kapasitas | INT | Direct | kapasitas | INT | Optional, for meeting rooms | 20 → 20 |
-| pic_nama | VARCHAR(100) | TRIM(), INITCAP() | pic_nama | VARCHAR(100) | Person in charge | agus santoso → Agus Santoso |
-| - | - | Concatenate | lokasi_lengkap | VARCHAR(200) | Full location string | → Gedung Rektorat, Lt. 2, R.201 |
+| Source Column | Source Type | Transformation                                        | Target Column | Target Type   | Business Rule                                                                 | Sample Input → Output          |
+|---------------|------------|-------------------------------------------------------|--------------|---------------|-------------------------------------------------------------------------------|--------------------------------|
+| id_lokasi     | INT        | Direct                                                | lokasi_key   | INTEGER       | Surrogate key dim_lokasi (bisa diganti sequence di implementasi fisik).     | 1 → 1                          |
+| id_lokasi     | INT        | CONCAT(gedung, '-', ruangan) atau kode master lain   | kode_lokasi  | VARCHAR(30)   | Kode lokasi/ruangan; kombinasi gedung-ruangan jika tidak ada kode baku.     | (Gedung Rektorat, R.201) → "REKTORAT-R.201" |
+| ruangan       | VARCHAR(50)| TRIM(), INITCAP()                                    | nama_lokasi  | VARCHAR(100)  | Nama ruangan/lokasi; gunakan nama ruangan + konteks gedung jika perlu.      | "r.201" → "R.201"              |
+| ruangan       | VARCHAR(50)| CASE WHEN ruangan ILIKE '%Rapat%' THEN 'Ruang Rapat' WHEN ruangan ILIKE '%Aula%' THEN 'Aula' ELSE 'Ruang Kerja' END | jenis_lokasi | VARCHAR(50)   | Jenis lokasi (Ruang Rapat, Aula, Kantor, Gudang, dll.) berdasarkan pola nama.| "R.201" → "Ruang Kerja"       |
+| gedung        | VARCHAR(50)| TRIM(), INITCAP()                                    | gedung       | VARCHAR(50)   | Nama gedung tempat ruangan berada.                                           | "gedung rektorat" → "Gedung Rektorat" |
+| lantai        | INT        | CAST(lantai AS VARCHAR)                              | lantai       | VARCHAR(10)   | Lantai disimpan sebagai teks agar fleksibel (Lantai 1, Basement, dll.).     | 2 → "2"                        |
+| kapasitas     | INT        | CAST(kapasitas AS VARCHAR)                           | keterangan   | VARCHAR(255)  | Keterangan tambahan; sementara isi kapasitas atau catatan ringkas.          | 20 → "Kapasitas 20 orang"      |
+
 
 ---
 
-### 1.7 DIM_JENIS_LAYANAN (Service Type)
+### 1.7 DIM_JENIS_LAYANAN (Service Type Dimension)
 
 **Source System:** LAYANAN_DB  
 **Source Table:** ref_jenis_layanan  
-**Load Frequency:** Weekly  
-**SCD Type:** Type 1  
-**Grain:** Per jenis layanan
+**Load Frequency:** On change (full reload kecil, jarang berubah)  
+**SCD Type:** Type 1 (overwrite)  
+**Grain:** 1 baris per jenis layanan unik  
 
-| Source Column | Source Type | Transformation | Target Column | Target Type | Business Rule | Sample Input → Output |
-|---------------|-------------|----------------|---------------|-------------|---------------|----------------------|
-| id | INT | Direct | jenis_layanan_key | INT | PK | 1 → 1 |
-| kode_layanan | VARCHAR(10) | UPPER(TRIM()) | kode_layanan | VARCHAR(10) | Business key | leg → LEG |
-| nama_layanan | VARCHAR(100) | TRIM(), INITCAP() | nama_layanan | VARCHAR(100) | - | legalisir dokumen → Legalisir Dokumen |
-| kategori | VARCHAR(50) | TRIM() | kategori | VARCHAR(50) | Administrasi Akademik, Teknis, dsb | Administrasi Akademik → Administrasi Akademik |
-| is_komplain | BIT | Direct | is_komplain | BIT | 1 = complaint, 0 = regular request | 0 → 0 |
-| sla_hari | INT | Direct | sla_hari | INT | Target completion days | 2 → 2 |
+| Source Column     | Source Type  | Transformation                       | Target Column         | Target Type   | Business Rule                                                                                   | Sample Input → Output     |
+|-------------------|-------------|--------------------------------------|-----------------------|---------------|--------------------------------------------------------------------------------------------------|---------------------------|
+| id_jenis_layanan  | INT         | Direct                               | jenis_layanan_key     | INTEGER       | Surrogate key dim_jenis_layanan (bisa diganti sequence saat implementasi fisik).                | 3 → 3                     |
+| kode_layanan      | VARCHAR(10) | UPPER(TRIM())                        | kode_jenis_layanan    | VARCHAR(10)   | Kode jenis layanan; distandarkan ke huruf besar tanpa spasi ekstra.                            | "lyn-pr " → "LYN-PR"      |
+| nama_layanan      | VARCHAR(100)| TRIM(), INITCAP()                    | nama_jenis_layanan    | VARCHAR(100)  | Nama jenis layanan; huruf awal kapital, spasi dirapikan.                                       | "peminjaman ruangan" → "Peminjaman Ruangan" |
+|
 
 ---
 
@@ -238,30 +246,34 @@ df['kategori'] = df['kategori'].map(kategori_mapping).fillna('Lainnya')
 ### 2.1 FACT_SURAT (Letter Transactions)
 
 **Source System:** SIMASTER_DB  
-**Source Tables:** tbl_surat_masuk, tbl_disposisi  
+**Source Tables:** tbl_surat_masuk, tbl_disposisi, ref_jenis_surat  
 **Load Frequency:** Daily (incremental)  
-**Grain:** Per surat individual  
-**Fact Type:** Transaction
+**Grain:** 1 baris per surat individual  
+**Fact Type:** Transaction  
 
-| Source Table | Source Column | Source Type | Transformation | Target Column | Target Type | Measure Type | Business Rule |
-|--------------|---------------|-------------|----------------|---------------|-------------|--------------|---------------|
-| - | - | - | Generated | surat_key | INT | - | PK, Surrogate |
-| tbl_surat_masuk | tanggal_diterima | DATE | Convert to tanggal_key via dim_waktu lookup | tanggal_key | INT | - | FK to dim_waktu |
-| tbl_surat_masuk | jenis_surat_id | INT | Lookup dim_jenis_surat.jenis_surat_key | jenis_surat_key | INT | - | FK to dim_jenis_surat |
-| tbl_surat_masuk | - | - | Parse from pengirim or default to external unit | unit_pengirim_key | INT | - | FK to dim_unit_kerja |
-| tbl_surat_masuk | disposisi_ke | VARCHAR | Lookup unit by name → dim_unit_kerja.unit_key | unit_penerima_key | INT | - | FK to dim_unit_kerja (role-playing) |
-| tbl_disposisi | kepada_pegawai_id | INT | Lookup dim_pegawai (current record) | pegawai_disposisi_key | INT | - | FK to dim_pegawai |
-| - | - | - | COUNT = 1 per row | jumlah_surat | INT | Additive | Always 1, for aggregation |
-| tbl_disposisi | tanggal_selesai, tbl_surat_masuk.tanggal_diterima | DATE | DATEDIFF(day, tanggal_diterima, tanggal_selesai) | waktu_proses_hari | INT | Additive | Processing time in days, NULL if not completed |
-| tbl_surat_masuk | nomor_surat | VARCHAR(50) | Direct | nomor_surat | VARCHAR(50) | - | Degenerate dimension |
-| tbl_disposisi | status | VARCHAR | IF status='Selesai' THEN 1 ELSE 0 | is_selesai | BIT | Additive | Completion flag |
+| Source Table      | Source Column        | Source Type | Transformation                                                                 | Target Column          | Target Type      | Measure Type | Business Rule                                                                                       |
+|-------------------|----------------------|-------------|--------------------------------------------------------------------------------|------------------------|------------------|--------------|-----------------------------------------------------------------------------------------------------|
+| -                 | -                    | -           | Generated                                                                      | surat_key              | BIGINT           | -            | Surrogate key (identity/sequence).                                                                  |
+| tbl_surat_masuk   | tanggal_diterima     | DATE        | Lookup dim_waktu.tanggal_key                                                   | tanggal_key            | INTEGER          | -            | FK ke dim_waktu berdasarkan tanggal_diterima.                                                       |
+| tbl_surat_masuk   | pengirim             | VARCHAR     | Lookup dim_unit_kerja berdasarkan nama unit; jika tidak cocok → key unit eksternal | unit_pengirim_key      | INTEGER          | -            | FK ke dim_unit_kerja (role: Pengirim).                                                              |
+| tbl_surat_masuk   | disposisi_ke         | VARCHAR     | Lookup dim_unit_kerja berdasarkan nama unit tujuan disposisi                  | unit_penerima_key      | INTEGER          | -            | FK ke dim_unit_kerja (role: Penerima).                                                              |
+| tbl_disposisi     | kepada_pegawai_id    | INT         | Lookup dim_pegawai (record current)                                            | pegawai_penerima_key   | INTEGER          | -            | FK ke dim_pegawai penerima/disposisi akhir.                                                         |
+| tbl_surat_masuk   | jenis_surat_id       | INT         | Lookup dim_jenis_surat.jenis_surat_key                                         | jenis_surat_key        | INTEGER          | -            | FK ke dim_jenis_surat.                                                                              |
+| tbl_surat_masuk   | nomor_surat          | VARCHAR(50) | Direct                                                                         | nomor_surat            | VARCHAR(50)      | -            | Degenerate dimension (nomor surat).                                                                 |
+| tbl_surat_masuk   | file_path            | VARCHAR(255)| CASE WHEN file_path IS NOT NULL THEN 1 ELSE 0 END                              | jumlah_lampiran        | INTEGER          | Additive     | Asumsi 1 lampiran per file_path; 0 jika tidak ada file lampiran.                                   |
+| tbl_surat_masuk   | tanggal_diterima     | DATE        | DATEDIFF(day, tanggal_diterima, d.tanggal_selesai) jika status selesai         | durasi_proses_hari     | INTEGER          | Additive     | Selisih hari dari tanggal_diterima sampai tanggal_selesai; NULL jika belum selesai.                |
+| tbl_surat_masuk   | jenis_surat_id       | INT         | Join ke ref_jenis_surat.sla_hari, bandingkan dengan durasi_proses_hari        | melewati_sla_flag      | BIT/BOOLEAN      | Additive     | 1 jika durasi_proses_hari > sla_hari, else 0; NULL jika durasi_proses_hari NULL.                   |
+| tbl_disposisi     | status               | VARCHAR(20) | COALESCE(d.status, s.status)                                                   | status_akhir           | VARCHAR(20)      | -            | Status akhir surat (Selesai/Pending/Dibatalkan/Arsip) mengambil prioritas dari disposisi jika ada. |
+| tbl_surat_masuk   | status               | VARCHAR(20) | CASE WHEN status IN ('E-Office','Digital') OR file_path IS NOT NULL THEN 'Sistem' ELSE 'Fisik' END | channel                | VARCHAR(20)      | -            | Kanal surat: Sistem (digital) atau Fisik, berdasarkan kombinasi status/file_path.                  |
+| -                 | -                    | -           | Constant 1                                                                     | jumlah_surat           | INTEGER          | Additive     | 1 per baris fact, untuk agregasi jumlah surat.                                                      |
+
 
 **Complex Transformation Notes:**
 ```sql
--- Calculate waktu_proses_hari only for completed letters
-waktu_proses_hari =
+-- Calculate durasi_proses_hari only for completed letters
+durasi_proses_hari =
 CASE
-WHEN d.status = 'Selesai' AND d.tanggal_selesai IS NOT NULL
+WHEN d.status_akhir = 'Selesai' AND d.tanggal_selesai IS NOT NULL
 THEN DATEDIFF(day, s.tanggal_diterima, d.tanggal_selesai)
 ELSE NULL
 END;
@@ -284,32 +296,36 @@ s.pengirim,
 s.nomor_surat,
 d.kepada_pegawai_id,
 d.tanggal_selesai,
-d.status
+d.status_akhir
 FROM tbl_surat_masuk s
 LEFT JOIN tbl_disposisi d ON s.id_surat = d.id_surat
-WHERE d.status = 'Selesai' OR d.id_disposisi IS NULL;
+WHERE d.status_akhir = 'Selesai' OR d.id_disposisi IS NULL;
 ```
 ---
 
-### 2.2 FACT_ASET (Asset Snapshot)
+### 2.2 FACT_ASET (Asset Inventory Snapshots)
 
 **Source System:** INVENTARIS_DB  
-**Source Table:** tbl_inventaris  
-**Load Frequency:** Monthly (snapshot on last day of month)  
-**Grain:** Per aset per bulan (periodic snapshot)  
-**Fact Type:** Periodic Snapshot
+**Source Tables:** tbl_inventaris, ref_barang, ref_lokasi, ref_unit_kerja  
+**Load Frequency:** Bulanan (snapshot di akhir bulan)  
+**Grain:** 1 baris per aset (barang) per tanggal snapshot  
+**Fact Type:** Periodic Snapshot  
 
-| Source Column | Source Type | Transformation | Target Column | Target Type | Measure Type | Business Rule |
-|---------------|-------------|----------------|---------------|-------------|--------------|---------------|
-| - | - | Generated | aset_snapshot_key | INT | - | PK, Surrogate |
-| tanggal_snapshot | DATE | Convert to tanggal_key (last day of month) | tanggal_snapshot_key | INT | - | FK to dim_waktu |
-| kode_barang | VARCHAR(30) | Lookup dim_barang.barang_key | barang_key | INT | - | FK to dim_barang |
-| lokasi_id | INT | Lookup dim_lokasi.lokasi_key | lokasi_key | INT | - | FK to dim_lokasi |
-| unit_kerja_id | INT | Lookup dim_unit_kerja.unit_key | unit_kerja_key | INT | - | FK to dim_unit_kerja |
-| nilai_perolehan | DECIMAL(15,2) | Handle NULL via median imputation | nilai_buku | DECIMAL(15,2) | Semi-additive | Current book value |
-| kondisi | VARCHAR(20) | Map to numeric score: Baik=5, Cukup=3, Rusak=1 | kondisi_score | INT | Non-additive | Asset condition rating |
-| - | - | COUNT = 1 | jumlah_unit | INT | Additive | Always 1 per asset |
-| kondisi | VARCHAR(20) | Direct | status | VARCHAR(20) | - | Aktif, Rusak, Hilang |
+| Source Table   | Source Column        | Source Type | Transformation                                                                                       | Target Column           | Target Type       | Measure Type | Business Rule                                                                                                     |
+|----------------|----------------------|-------------|------------------------------------------------------------------------------------------------------|-------------------------|-------------------|--------------|-------------------------------------------------------------------------------------------------------------------|
+| -              | -                    | -           | Generated                                                                                            | aset_snapshot_key       | BIGINT            | -            | Surrogate key fact_aset (identity/sequence).                                                                      |
+| ETL_SNAPSHOT   | snapshot_date        | DATE        | Lookup dim_waktu.tanggal_key                                                                         | tanggal_snapshot_key    | INTEGER           | -            | FK ke dim_waktu berdasarkan tanggal snapshot (misal akhir bulan).                                                |
+| tbl_inventaris | kode_barang          | VARCHAR(30) | Lookup dim_barang.barang_key                                                                         | barang_key              | INTEGER           | -            | FK ke dim_barang berdasarkan kode_barang.                                                                         |
+| tbl_inventaris | lokasi_id            | INT         | Lookup dim_lokasi.lokasi_key                                                                         | lokasi_key              | INTEGER           | -            | FK ke dim_lokasi tempat aset berada saat snapshot.                                                                |
+| tbl_inventaris | unit_kerja_id        | INT         | Lookup dim_unit_kerja.unit_key                                                                       | unit_pemilik_key        | INTEGER           | -            | FK ke dim_unit_kerja sebagai pemilik/pengguna aset.                                                               |
+| tbl_inventaris | jumlah_unit          | INT         | COALESCE(jumlah_unit, 1)                                                                             | jumlah_unit             | INTEGER           | Additive     | Jumlah unit aset pada baris tersebut; default 1 jika NULL.                                                        |
+| tbl_inventaris | nilai_perolehan      | NUMERIC     | CAST(nilai_perolehan AS NUMERIC(18,2))                                                               | nilai_perolehan         | NUMERIC(18,2)     | Additive     | Nilai perolehan total aset (per jumlah_unit).                                                                    |
+| tbl_inventaris | nilai_perolehan      | NUMERIC     | Hitung nilai buku berdasarkan umur ekonomis dan umur pakai (misal metode garis lurus)                | nilai_buku              | NUMERIC(18,2)     | Additive     | Nilai buku pada tanggal snapshot; aturan depresiasi dirinci di dokumen ETL/finance (bisa diset = nilai_perolehan pada versi awal). |
+| tbl_inventaris | umur_ekonomis_tahun  | DECIMAL     | CAST(umur_ekonomis_tahun AS DECIMAL(5,2))                                                            | umur_ekonomis_tahun     | DECIMAL(5,2)      | -            | Umur ekonomis aset dalam tahun (dari kebijakan akuntansi/inventaris).                                            |
+| tbl_inventaris | tahun_perolehan      | INT         | (tahun_snapshot - tahun_perolehan) dibatasi minimal 0                                                | umur_tersisa_tahun      | DECIMAL(5,2)      | -            | Perkiraan umur ekonomis tersisa = umur_ekonomis_tahun - umur_pakai; 0 jika sudah melewati umur ekonomis.         |
+| tbl_inventaris | kondisi              | VARCHAR(20) | Normalisasi ke nilai master (Baik/Rusak Ringan/Rusak Berat/Dihapus)                                  | kondisi                 | VARCHAR(20)       | -            | Kondisi aset pada saat snapshot.                                                                                  |
+| tbl_inventaris | status_pemanfaatan   | VARCHAR(20) | Normalisasi ke nilai master (Aktif/Tidak Terpakai/Dipinjamkan/Dihapus)                              | status_pemanfaatan      | VARCHAR(20)       | -            | Status pemanfaatan aset pada saat snapshot.                                                                       |
+
 
 **NULL Handling for nilai_buku:**
 **In ETL script**
@@ -331,7 +347,7 @@ INSERT INTO fact_aset (
 tanggal_snapshot_key,
 barang_key,
 lokasi_key,
-unit_kerja_key,
+unit_pemilik_key,
 nilai_buku,
 kondisi_score,
 jumlah_unit,
@@ -362,24 +378,31 @@ WHERE i.tanggal_snapshot = EOMONTH(GETDATE());
 ### 2.3 FACT_LAYANAN (Service Requests)
 
 **Source System:** LAYANAN_DB  
-**Source Table:** tbl_permintaan_layanan  
+**Source Tables:** tbl_permintaan_layanan, ref_jenis_layanan, ref_unit, ref_pegawai  
 **Load Frequency:** Daily (incremental)  
-**Grain:** Per permintaan layanan  
-**Fact Type:** Transaction
+**Grain:** 1 baris per permintaan layanan (ticket)  
+**Fact Type:** Transaction  
 
-| Source Column | Source Type | Transformation | Target Column | Target Type | Measure Type | Business Rule |
-|---------------|-------------|----------------|---------------|-------------|--------------|---------------|
-| - | - | Generated | layanan_key | INT | - | PK, Surrogate |
-| timestamp_submit | DATETIME | Convert date part to tanggal_key | waktu_key | INT | - | FK to dim_waktu |
-| jenis_layanan_id | INT | Lookup dim_jenis_layanan.jenis_layanan_key | jenis_layanan_key | INT | - | FK to dim_jenis_layanan |
-| pemohon_nip | VARCHAR(20) | Lookup dim_pegawai (current record) | pegawai_pemohon_key | INT | - | FK to dim_pegawai |
-| unit_tujuan_id | INT | Lookup dim_unit_kerja.unit_key | unit_tujuan_key | INT | - | FK to dim_unit_kerja |
-| timestamp_submit, tanggal_selesai | DATETIME | DATEDIFF(hour, timestamp_submit, tanggal_selesai) | waktu_respon_jam | INT | Additive | Response time in hours |
-| waktu_respon_jam | INT | IF waktu_respon_jam <= (sla * 24) THEN 1 ELSE 0 | is_on_time | BIT | Additive | SLA compliance flag |
-| - | - | COUNT = 1 | jumlah_permintaan | INT | Additive | Always 1 for aggregation |
-| rating_kepuasan | DECIMAL(2,1) | Direct, NULL allowed | rating_kepuasan | DECIMAL(2,1) | Non-additive | Customer satisfaction 1.0-5.0 |
-| nomor_tiket | VARCHAR(30) | Direct | nomor_tiket | VARCHAR(30) | - | Degenerate dimension |
-| status_penyelesaian | VARCHAR(20) | Direct | status | VARCHAR(20) | - | Selesai, Pending, Dibatalkan |
+| Source Table           | Source Column          | Source Type | Transformation                                                                                   | Target Column                | Target Type       | Measure Type | Business Rule                                                                                                      |
+|------------------------|------------------------|-------------|--------------------------------------------------------------------------------------------------|------------------------------|-------------------|--------------|--------------------------------------------------------------------------------------------------------------------|
+| -                      | -                      | -           | Generated                                                                                        | layanan_key                  | BIGINT            | -            | Surrogate key fact_layanan (identity/sequence).                                                                    |
+| tbl_permintaan_layanan | timestamp_submit       | DATETIME    | Lookup dim_waktu.tanggal_key                                                                    | tanggal_request_key          | INTEGER           | -            | FK ke dim_waktu berdasarkan tanggal permintaan dibuat.                                                             |
+| tbl_permintaan_layanan | tanggal_selesai        | DATETIME    | Lookup dim_waktu.tanggal_key (NULL jika belum selesai)                                         | tanggal_selesai_key          | INTEGER           | -            | FK ke dim_waktu berdasarkan tanggal permintaan selesai; NULL jika belum selesai.                                  |
+| tbl_permintaan_layanan | unit_pemohon_id        | INT         | Lookup dim_unit_kerja.unit_key                                                                  | unit_pemohon_key             | INTEGER           | -            | FK ke dim_unit_kerja sebagai unit pemohon layanan.                                                                 |
+| tbl_permintaan_layanan | unit_pelaksana_id      | INT         | Lookup dim_unit_kerja.unit_key                                                                  | unit_pelaksana_key           | INTEGER           | -            | FK ke dim_unit_kerja sebagai unit pelaksana layanan.                                                               |
+| tbl_permintaan_layanan | pemohon_nip            | VARCHAR(20) | Lookup dim_pegawai.pegawai_key (record current)                                                 | pegawai_pemohon_key          | INTEGER           | -            | FK ke dim_pegawai sebagai pemohon/pengaju layanan.                                                                 |
+| tbl_permintaan_layanan | penanggung_jawab_nip   | VARCHAR(20) | Lookup dim_pegawai.pegawai_key (record current)                                                 | pegawai_penanggung_jawab_key | INTEGER           | -            | FK ke dim_pegawai sebagai penanggung jawab pelaksanaan layanan.                                                    |
+| tbl_permintaan_layanan | jenis_layanan_id       | INT         | Lookup dim_jenis_layanan.jenis_layanan_key                                                      | jenis_layanan_key            | INTEGER           | -            | FK ke dim_jenis_layanan.                                                                                           |
+| tbl_permintaan_layanan | nomor_tiket            | VARCHAR(30) | UPPER(TRIM())                                                                                   | nomor_tiket                  | VARCHAR(30)       | -            | Nomor tiket unik permintaan layanan (degenerate dimension).                                                        |
+| ref_jenis_layanan      | sla_hari               | INT         | sla_hari * 24                                                                                    | sla_target_jam               | INTEGER           | -            | SLA target penyelesaian dalam jam (konversi dari hari * 24).                                                       |
+| tbl_permintaan_layanan | timestamp_submit       | DATETIME    | DATEDIFF(hour, timestamp_submit, first_response_time)                                           | waktu_respon_jam             | DECIMAL(10,2)     | Additive     | Waktu dari submit sampai respons pertama dicatat; NULL jika belum ada respons (opsional jika kolom tersedia).    |
+| tbl_permintaan_layanan | timestamp_submit       | DATETIME    | DATEDIFF(hour, timestamp_submit, tanggal_selesai)                                               | waktu_selesai_jam            | DECIMAL(10,2)     | Additive     | Waktu dari submit sampai status selesai; NULL jika belum selesai.                                                 |
+| -                      | -                      | -           | CASE WHEN waktu_selesai_jam IS NULL THEN NULL WHEN waktu_selesai_jam > sla_target_jam THEN 1 ELSE 0 END | melewati_sla_flag            | BIT/BOOLEAN       | Additive     | 1 jika `waktu_selesai_jam` > `sla_target_jam`; 0 jika ≤ SLA; NULL jika layanan belum selesai.                     |
+| tbl_permintaan_layanan | rating_kepuasan        | DECIMAL(2,1)| CAST(rating_kepuasan AS DECIMAL(2,1))                                                           | rating_kepuasan              | DECIMAL(2,1)      | Semi-additive| Rating kepuasan pemohon (skala 1–5) dari sistem layanan.                                                           |
+| tbl_permintaan_layanan | biaya_layanan          | MONEY/NUM   | CAST(biaya_layanan AS NUMERIC(18,2))                                                            | biaya_layanan                | NUMERIC(18,2)     | Additive     | Biaya aktual layanan (jika tersedia); 0 jika layanan tidak berbiaya.                                              |
+| tbl_permintaan_layanan | status_penyelesaian    | VARCHAR(20) | Normalisasi ke nilai master (Selesai/Dibatalkan/Ditolak/In Progress)                            | status_akhir                 | VARCHAR(20)       | -            | Status akhir tiket layanan.                                                                                        |
+| -                      | -                      | -           | Constant 1                                                                                       | jumlah_permintaan            | INTEGER           | Additive     | 1 per baris fact, digunakan untuk agregasi jumlah permintaan layanan.                                             |
+
 
 **Business Rules:**
 ```sql
@@ -392,7 +415,7 @@ ELSE NULL
 END;
 
 -- SLA check based on jenis_layanan.sla_hari
-is_on_time =
+melewati_sla_flag =
 CASE
 WHEN waktu_respon_jam <= (jl.sla_hari * 24) THEN 1
 ELSE 0
@@ -536,16 +559,16 @@ WHERE tanggal_snapshot = EOMONTH(GETDATE());
 | fact_surat | dim_waktu | tanggal_key | tanggal_key |
 | fact_surat | dim_jenis_surat | jenis_surat_key | jenis_surat_key |
 | fact_surat | dim_unit_kerja | unit_pengirim_key | unit_key |
-| fact_surat | dim_unit_kerja | unit_penerima_key | unit_key |
-| fact_surat | dim_pegawai | pegawai_disposisi_key | pegawai_key |
+| fact_surat | dim_unit_kerja | unit_pemilik_key | unit_key |
+| fact_surat | dim_pegawai | pegawai_penerima_key | pegawai_key |
 | fact_aset | dim_waktu | tanggal_snapshot_key | tanggal_key |
 | fact_aset | dim_barang | barang_key | barang_key |
 | fact_aset | dim_lokasi | lokasi_key | lokasi_key |
-| fact_aset | dim_unit_kerja | unit_kerja_key | unit_key |
-| fact_layanan | dim_waktu | waktu_key | tanggal_key |
+| fact_aset | dim_unit_kerja | unit_pemilik_key | unit_key |
+| fact_layanan | dim_waktu | tanggal_request_key | tanggal_key |
 | fact_layanan | dim_jenis_layanan | jenis_layanan_key | jenis_layanan_key |
 | fact_layanan | dim_pegawai | pegawai_pemohon_key | pegawai_key |
-| fact_layanan | dim_unit_kerja | unit_tujuan_key | unit_key |
+| fact_layanan | dim_unit_kerja | unit_pelaksana_key | unit_key |
 
 ### A.2 Measure Types Summary
 
