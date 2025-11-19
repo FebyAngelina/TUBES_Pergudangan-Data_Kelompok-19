@@ -95,27 +95,27 @@ Paket artefak desain dan perencanaan data mart yang dikumpulkan untuk Misi 1.
 ## 🏗️ Arsitektur Data Warehouse
 
 - **Approach:** Kimball Dimensional Modeling (Star Schema)
-- **Database:** SQL Server 2019 on Azure VM
-- **ETL:** SQL Server Integration Services (SSIS) / T-SQL Stored Procedures
-- **Visualization:** Power BI Desktop
+- **Database:** PostgreSQL 16 (Migrated from initial SQL server design)
+- **ETL:** Python (Pandas) & PL/pgSQL Stored Procedures
+- **Visualization:** Power BI Desktop / Metabase
 - **Version Control:** GitHub
 
-### Data Model (Coming Soon)
-![Dimensional Model](docs/02-design/dimensional-model.png)
+### Data Model (Mission 1 Design)
+Berikut adalah tabel-tabel utama dalam desain Dimensional Model (Star Schema):
 
 **Fact Tables:**
-- Fact_Surat_Menyurat
-- Fact_Peminjaman_Ruangan
-- Fact_Pengadaan (optional)
+* **Fact_Surat:** Transaksi surat masuk dan keluar (Grain: per surat).
+* **Fact_Layanan:** Transaksi permintaan layanan sekretariat (Grain: per tiket).
+* **Fact_Aset:** Snapshot bulanan kondisi dan nilai aset (Grain: per aset per bulan).
 
 **Dimension Tables:**
-- Dim_Date (Time dimension)
-- Dim_Unit (Fakultas, Jurusan, Biro)
-- Dim_Ruangan (Ruangan & Fasilitas)
-- Dim_Jenis_Surat
-- Dim_Status
-- Dim_Peminjam
-
+* **Dim_Waktu:** Dimensi tanggal & kalender.
+* **Dim_Unit_Kerja:** Struktur organisasi (Biro, Bagian, Fakultas).
+* **Dim_Pegawai:** Data profil pegawai (SCD Type 2).
+* **Dim_Jenis_Surat:** Klasifikasi surat & SLA.
+* **Dim_Jenis_Layanan:** Katalog layanan & SLA.
+* **Dim_Barang:** Detail item aset/inventaris.
+* **Dim_Lokasi:** Gedung dan ruangan.
 ---
 
 ## 📁 Repository Structure
