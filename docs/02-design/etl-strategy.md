@@ -25,8 +25,8 @@ Data Mart Biro Akademik Umum ITERA dirancang untuk mengintegrasikan data dari 6 
 - Data Volume: ~56K fact rows, ~3.4K dimension rows (initial load)
 - Growth Rate: ~65% per year (estimated)
 - Refresh Frequency: Daily incremental (fact_surat, fact_layanan), Monthly snapshot (fact_aset), Weekly (dimensions)
-- Technology Stack: SQL Server 2019, T-SQL Stored Procedures, Python (for data generation & transformation)
-- Target Environment: Azure VM (SQL Server on Windows Server 2019)
+- Technology Stack: PostgreSQL 16, PL/pgSQL Stored Procedures, Python (for data generation & extraction)
+- Target Environment: Azure VM (Linux/Ubuntu with PostgreSQL)
 
 ### Key Objectives
 - Data Quality: Achieve >95% data accuracy and completeness
@@ -111,11 +111,11 @@ Data Mart Biro Akademik Umum ITERA dirancang untuk mengintegrasikan data dari 6 
 | Layer | Technology | Purpose | Justification |
 | - | - | - | - |
 |**Extraction**|Python 3.10 + pandas|Data extraction & CSV generation|Flexibility, library support, synthetic data generation|
-|**Staging**|SQL Server Tables (stg schema)|Temporary raw data storage|Native integration, transaction support|
-|**Transformation**|T-SQL Stored Procedures|Business logic execution|Performance, maintainability, version control|
-|**Loading**|T-SQL MERGE statements|SCD handling & incremental load|Native SCD support, atomic operations|
-|**Orchestration**|SQL Server Agent Jobs|Job scheduling & dependency management|Built-in, no additional cost|
-|**Monitoring**|SQL Server Extended Events + Custom Log Tables|Performance tracking & auditing|Native, low overhead, no extra tools|
+|**Staging**|PostgreSQL Tables (stg schema)|Temporary raw data storage|Native integration, transaction support|
+|**Transformation**|PL/pgSQL Stored Procedures|Business logic execution|Performance, maintainability, version control|
+|**Loading**|PostgreSQL COPY / INSERT|SCD handling & incremental load|Native SCD support, atomic operations|
+|**Orchestration**|Python Script / Crontab|Job scheduling & dependency management|Built-in, no additional cost|
+|**Monitoring**|Custom Log Tables|Performance tracking & auditing|Native, low overhead, no extra tools|
 |**Version Control**|GitHub|Code & documentation management|Collaboration, backup, versioning|
 ---
 ### 1.4 Environment Strategy
